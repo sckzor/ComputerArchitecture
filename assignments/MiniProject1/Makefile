@@ -1,4 +1,4 @@
-filename = blink
+filename = rgblink
 pcf_file = ../common/iceBlinkPico.pcf
 
 build:
