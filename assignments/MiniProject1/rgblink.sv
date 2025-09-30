@@ -65,7 +65,6 @@ module top(
             endcase
                 
             count <= 0;
-            LED <= ~LED;
         end
         else begin
             count <= count + 1;
