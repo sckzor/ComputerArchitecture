@@ -17,27 +17,26 @@ module top(
     parameter HOLD = 2;
     parameter DOWN = 3;
 
-    parameter RESTART = 1000;
 
     parameter START_TIME = 167;
     parameter HOLD_TIME = 500;
-    parameter CYCLE_TIME = 1000;
+    parameter RESTART = 1000;
     parameter LOOP_TIME = 12000000;
 
     logic [14:0] pwm_tick = 0;
     logic [10:0] sum_tick = 0;
 
-    logic [2:0] red_dir = 0;
+    logic [2:0] red_dir = HOLD;
     logic [2:0] green_dir = 0;
     logic [2:0] blue_dir = 0;
 
-    logic [10:0] red_pos = 501;
-    logic [10:0] green_pos = 501;
-    logic [10:0] blue_pos = 501;
+    logic [9:0] red_pos = 333;
+    logic [9:0] green_pos = 1001;
+    logic [9:0] blue_pos = 1001;
 
-    logic [10:0] red_pwm = 0;
-    logic [10:0] green_pwm = 0;
-    logic [10:0] blue_pwm = 0;
+    logic [9:0] red_pwm = 0;
+    logic [9:0] green_pwm = 0;
+    logic [9:0] blue_pwm = 0;
 
     initial begin
         RGB_R = 1'b1;
