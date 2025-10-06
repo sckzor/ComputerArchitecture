@@ -6,37 +6,39 @@ module top(
     output logic    RGB_G,
     output logic    RGB_B
 );
-
     // CLK frequency is 12MHz
-    parameter RED_START = 666;
-    parameter GREEN_START = 0;
-    parameter BLUE_START = 333;
+    parameter CLK_PER_MS = 12000;
+    parameter TCK_PER_MS = 10;
+
+    parameter RED_START = 666 * TCK_PER_MS;
+    parameter GREEN_START = 0 * TCK_PER_MS;
+    parameter BLUE_START = 333 * TCK_PER_MS;
 
     parameter STOP = 0;
     parameter UP = 1;
     parameter HOLD = 2;
     parameter DOWN = 3;
 
+    parameter UP_OVER = 167 * TCK_PER_MS;
+    parameter HOLD_OVER = 500 * TCK_PER_MS;
+    parameter DOWN_OVER = 667 * TCK_PER_MS;
+    parameter CYCLE_OVER = 1000 * TCK_PER_MS;
 
-    parameter START_TIME = 167;
-    parameter HOLD_TIME = 500;
-    parameter RESTART = 1000;
-    parameter LOOP_TIME = 12000000;
-
-    logic [14:0] pwm_tick = 0;
-    logic [10:0] sum_tick = 0;
+    logic [12:0] div_cntr = 0;
+    logic [12:0] pwm_cntr = 0;
+    logic [14:0] tck_cntr = 0;
 
     logic [2:0] red_dir = HOLD;
-    logic [2:0] green_dir = 0;
-    logic [2:0] blue_dir = 0;
+    logic [2:0] green_dir = UP;
+    logic [2:0] blue_dir = STOP;
 
-    logic [9:0] red_pos = 333;
-    logic [9:0] green_pos = 1001;
-    logic [9:0] blue_pos = 1001;
+    logic [13:0] red_pos = 333 * TCK_PER_MS;
+    logic [13:0] green_pos = 0;
+    logic [13:0] blue_pos = 666 * TCK_PER_MS;
 
-    logic [9:0] red_pwm = 0;
-    logic [9:0] green_pwm = 0;
-    logic [9:0] blue_pwm = 0;
+    logic [13:0] red_pwm = 0;
+    logic [13:0] green_pwm = 0;
+    logic [13:0] blue_pwm = 0;
 
     initial begin
         RGB_R = 1'b1;
@@ -45,7 +47,19 @@ module top(
     end
 
     always_ff @(posedge clk) begin
-        case(sum_tick)
+        if(div_cntr == (CLK_PER_MS/TCK_PER_MS)) begin
+            div_cntr <= 0;
+
+            red_pos <= red_pos + 1;
+            green_pos <= green_pos + 1;
+            blue_pos <= blue_pos + 1;
+
+            tck_cntr <= tck_cntr + 1;
+        end else begin
+            div_cntr <= div_cntr + 1;
+        end
+
+        case(tck_cntr)
             RED_START: begin
                 red_dir <= UP;
                 red_pos <= 0;
@@ -58,153 +72,137 @@ module top(
                 blue_dir <= UP;
                 blue_pos <= 0;
             end
+            CYCLE_OVER: begin
+                tck_cntr <= 0;
+            end
         endcase
 
-	if(pwm_tick == 12000) begin
-            case(red_dir)
-                UP: begin
-                    red_pos <= red_pos + 1;
-                    if(red_pos == START_TIME) begin
-                        red_dir <= HOLD;
-                    end
-                end
-                HOLD: begin
-                    red_pos <= red_pos + 1;
-                    if(red_pos == HOLD_TIME) begin
-                        red_dir <= DOWN;
-                        red_pos <= START_TIME;
-                    end
-                end
-                DOWN: begin
-                    red_pos <= red_pos - 1;
-		    if(red_pos == 0) begin
-                        red_dir <= STOP;
-                    end
-                end
-            endcase
+        case(red_pos)
+            UP_OVER: begin
+                red_dir <= HOLD;
+            end
+            HOLD_OVER: begin
+                red_dir <= DOWN;
+            end
+            DOWN_OVER: begin
+                red_dir <= STOP;
+            end
+        endcase
 
-            case(green_dir)
-                UP: begin
-                    green_pos <= green_pos + 1;
-                    if(green_pos == START_TIME ) begin
-                        green_dir <= HOLD;
-                    end
-                end
-                HOLD: begin
-                    green_pos <= green_pos + 1;
-                    if(green_pos == HOLD_TIME) begin
-                        green_dir <= DOWN;
-                        green_pos <= START_TIME;
-                    end
-                end
-                DOWN: begin
-                    green_pos <= green_pos - 1;
-		    if(green_pos == 0) begin
-                        green_dir <= STOP;
-                    end
-                end
-            endcase
+        case(green_pos)
+            UP_OVER: begin
+                green_dir <= HOLD;
+            end
+            HOLD_OVER: begin
+                green_dir <= DOWN;
+            end
+            DOWN_OVER: begin
+                green_dir <= STOP;
+            end
+        endcase
 
-            case(blue_dir)
-                UP: begin
-                    blue_pos <= blue_pos + 1;
-                    if(blue_pos == START_TIME ) begin
-                        blue_dir <= HOLD;
-                    end
-                end
-                HOLD: begin
-                    blue_pos <= blue_pos + 1;
-                    if(blue_pos == HOLD_TIME) begin
-                        blue_dir <= DOWN;
-                        blue_pos <= START_TIME;
-                    end
-                end
-                DOWN: begin
-                    blue_pos <= blue_pos - 1;
-		    if(blue_pos == 0) begin
-                        blue_dir <= STOP;
-                    end
-                end
-            endcase
-
-            pwm_tick <= 0;
-            sum_tick <= sum_tick + 1;
-        end
-        else begin
-            pwm_tick <= pwm_tick + 1;
-        end
-
-        if(sum_tick > RESTART) begin
-            sum_tick <= 0;
-        end
+        case(blue_pos)
+            UP_OVER: begin
+                blue_dir <= HOLD;
+            end
+            HOLD_OVER: begin
+                blue_dir <= DOWN;
+            end
+            DOWN_OVER: begin
+                blue_dir <= STOP;
+            end
+        endcase
     end
 
     always_ff @(posedge clk) begin
         case(red_dir)
-            UP, DOWN: begin
-                case(red_pwm)
-                    red_pos: begin
-                        RGB_R = 1'b1;
-                    end
-                    START_TIME: begin
-                        red_pwm = 0;
-                        RGB_R = 1'b0;
-                    end
-                endcase
-                red_pwm = red_pwm + 1;
+            UP: begin
+                red_pwm <= red_pos;
             end
+
             HOLD: begin
-                RGB_R = 1'b0;
+                red_pwm <= UP_OVER + 2;
             end
+
+            DOWN: begin
+                red_pwm <= DOWN_OVER - red_pos;
+            end
+
             STOP: begin
-                RGB_R = 1'b1;
+                red_pwm <= 0;
             end
         endcase
     end
 
     always_ff @(posedge clk) begin
         case(green_dir)
-            UP, DOWN: begin
-                case(green_pwm)
-                    green_pos: begin
-                        RGB_G = 1'b1;
-                    end
-                    START_TIME: begin
-                        green_pwm = 0;
-                        RGB_G = 1'b0;
-                    end
-                endcase
-                green_pwm = green_pwm + 1;
+            UP: begin
+                green_pwm <= green_pos;
             end
+
             HOLD: begin
-                RGB_G = 1'b0;
+                green_pwm <= UP_OVER + 2;
             end
+
+            DOWN: begin
+                green_pwm <= DOWN_OVER - green_pos;
+            end
+
             STOP: begin
-                RGB_G = 1'b1;
+                green_pwm <= 0;
             end
         endcase
     end
 
     always_ff @(posedge clk) begin
         case(blue_dir)
-            UP, DOWN: begin
-                case(blue_pwm)
-                    blue_pos: begin
-                        RGB_B = 1'b1;
-                    end
-                    START_TIME: begin
-                        blue_pwm = 0;
-                        RGB_B = 1'b0;
-                    end
-                endcase
-                blue_pwm = blue_pwm + 1;
+            UP: begin
+                blue_pwm <= blue_pos;
             end
+
             HOLD: begin
-                RGB_B = 1'b0;
+                blue_pwm <= UP_OVER + 2;
             end
+
+            DOWN: begin
+                blue_pwm <= DOWN_OVER - blue_pos;
+            end
+
             STOP: begin
-                RGB_B = 1'b1;
+                blue_pwm <= 0;
             end
         endcase
+    end
+
+    always_ff @(posedge clk) begin
+        if(pwm_cntr > UP_OVER) begin
+            pwm_cntr <= 0;
+        end else begin
+            pwm_cntr <= pwm_cntr + 1;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if(pwm_cntr < red_pwm) begin
+            RGB_R <= 1'b0;
+        end else begin
+            RGB_R <= 1'b1;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if(pwm_cntr < green_pwm) begin
+            RGB_G <= 1'b0;
+        end else begin
+            RGB_G <= 1'b1;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if(pwm_cntr < blue_pwm) begin
+            RGB_B <= 1'b0;
+        end else begin
+            RGB_B <= 1'b1;
+        end
     end
 endmodule
