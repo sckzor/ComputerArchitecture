@@ -10,6 +10,9 @@ module top(
     parameter PERIOD_TICKS = 15;
     parameter BLANKING_TIME = 2000;
 
+    parameter UPDATE_TIME = 2000000;
+    // parameter UPDATE_TIME = 100;
+
     parameter TX_BITS = 24;
     parameter LED_BITS = 64;
 
@@ -19,22 +22,50 @@ module top(
     parameter TRUE = 1'b1;
     parameter FALSE = 1'b0;
 
-    // parameter LED_PATTERN = 64'b01111110_10000001_10100101_10000001_11000011_10111101_10000001_01111110;
-    // parameter LED_PATTERN = 64'b01010101_10101010_01010101_10101010_01010101_10101010_01010101_10101010;
-    parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000;
+    parameter R_STATE = 0;
+    parameter G_STATE = 1;
+    parameter B_STATE = 2;
+
+    // parameter LED_PATTERN = 64'b01111110_10000001_10100101_10000001_11000011_10111101_10000001_01111110; // Face
+    // parameter LED_PATTERN = 64'b01010101_10101010_01010101_10101010_01010101_10101010_01010101_10101010; // Checkerboard
+    // parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000; // Toad
+    // parameter LED_PATTERN = 64'b01000000_00100000_11100000_00000000_00000000_00000000_00000000_00000000; // Glider
+
+    parameter EMPTY_LED = 64'b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
     parameter LED_OFF = 24'b000000000000000000000000;
-    parameter LED_COLOR = 24'b111111111111111111111111;
+    parameter LED_R = 24'b000000001111111100000000;
+    parameter LED_G = 24'b000000000000000011111111;
+    parameter LED_B = 24'b111111110000000000000000;
+
+    logic [LED_BITS-1:0] mem [0:0];
+
+    initial begin
+        $readmemh("pattern.txt", mem);
+    end
+
+    logic [LED_BITS-1:0] new_pattern = EMPTY_LED;
+    logic [LED_BITS-1:0] pattern;
+    logic [LED_BITS-1:0] pattern_bitstring;
+
+    assign pattern = mem[0];
+    assign pattern_bitstring = mem[0];
+    
 
     logic [4:0] period_cntr = 0;
     logic [4:0] bit_cntr = 0;
     logic [6:0] led_cntr = 0;
     logic [TX_BITS-1:0] color_bitstring = LED_OFF;
-    logic [LED_BITS-1:0] pattern_bitstring = LED_PATTERN;
+    
     logic [10:0] blanking_counter = 0;
 
-    logic [4:0] bit_checked = 0;
-    logic [2:0] neighbors = 0;
+    logic [6:0] bit_checked = 0;
+    logic [4:0] neighbors = 0;
+
+    logic [TX_BITS-1:0] curr_color = LED_R;
+    logic [3:0] color_state = 0;
+
+    logic [24:0] update_counter = 0;
     
     initial begin
         _3b = 1'b1;
@@ -68,7 +99,7 @@ module top(
                     bit_cntr <= 0;
 
                     if(pattern_bitstring[0] == 1) begin
-                        color_bitstring <= LED_COLOR;
+                        color_bitstring <= curr_color;
                     end else begin
                         color_bitstring <= LED_OFF;
                     end
@@ -76,7 +107,7 @@ module top(
 
                     if(led_cntr == LED_BITS - 1) begin
                         led_cntr <= 0;
-                        pattern_bitstring <= LED_PATTERN;
+                        pattern_bitstring <= pattern;
                         blanking_counter <= BLANKING_TIME;
                         
                     end else begin
@@ -97,10 +128,10 @@ module top(
             _3b <= HIGH;
             blanking_counter <= 0;
 
-            color_bitstring <= LED_COLOR;
+            color_bitstring <= curr_color;
 
             if(pattern_bitstring[0] == 1) begin
-                color_bitstring <= LED_COLOR;
+                color_bitstring <= curr_color;
             end else begin
                 color_bitstring <= LED_OFF;
             end
@@ -108,6 +139,95 @@ module top(
             pattern_bitstring <= pattern_bitstring >> 1;
         end else begin
             blanking_counter <= blanking_counter - 1;
+        end
+    end
+
+    always_comb begin
+        neighbors = 0;
+
+        if(bit_checked > 8 && pattern[bit_checked - 8] == 1) begin
+            neighbors = neighbors + 1;
+        end
+
+        if(bit_checked < LED_BITS - 8 && pattern[bit_checked + 8] == 1) begin
+            neighbors = neighbors + 1;
+        end
+
+        if(bit_checked != 0 && bit_checked != 8 && bit_checked != 16 && bit_checked != 24 && bit_checked != 32 && bit_checked != 40 && bit_checked != 48 && bit_checked != 56) begin
+            if(bit_checked < LED_BITS - 7 && pattern[bit_checked + 7] == 1) begin
+                neighbors = neighbors + 1;
+            end
+
+            if(pattern[bit_checked - 1] == 1) begin
+                neighbors = neighbors + 1;
+            end  
+
+            if(bit_checked > 9 && pattern[bit_checked - 9] == 1) begin
+                neighbors = neighbors + 1;
+            end
+        end
+
+        if(bit_checked != 7 && bit_checked != 15 && bit_checked != 23 && bit_checked != 31 && bit_checked != 39 && bit_checked != 47 && bit_checked != 55 && bit_checked != 63) begin
+            if(bit_checked > 7 && pattern[bit_checked - 7] == 1) begin
+                neighbors = neighbors + 1;
+            end
+
+            if(pattern[bit_checked + 1] == 1) begin
+                neighbors = neighbors + 1;
+            end  
+
+            if(bit_checked < LED_BITS - 9 && pattern[bit_checked + 9] == 1) begin
+                neighbors = neighbors + 1;
+            end
+        end
+
+    end
+
+    always_ff @(posedge clk) begin
+        if(update_counter == UPDATE_TIME) begin
+            if(bit_checked == LED_BITS) begin
+                pattern <= new_pattern;
+                new_pattern <= EMPTY_LED;
+                bit_checked <= 0;
+                update_counter <= 0;
+
+                case(color_state)
+                    R_STATE: begin
+                        color_state <= G_STATE;
+                        curr_color <= LED_G;
+                    end
+
+                    G_STATE: begin
+                        color_state <= B_STATE;
+                        curr_color <= LED_B;
+                    end
+
+                    B_STATE: begin
+                        color_state <= R_STATE;
+                        curr_color <= LED_R;
+                    end
+                endcase
+
+            end else begin
+                case(neighbors)
+                    2: begin
+                        new_pattern[bit_checked] <= pattern[bit_checked];
+                    end
+
+                    3: begin
+                        new_pattern[bit_checked] <= 1;
+                    end
+
+                    default: begin
+                        new_pattern[bit_checked] <= 0;
+                    end
+
+                endcase
+
+                bit_checked <= bit_checked + 1;
+            end
+        end else begin
+            update_counter <= update_counter + 1;
         end
     end
 
