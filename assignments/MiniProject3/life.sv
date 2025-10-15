@@ -28,7 +28,7 @@ module top(
 
     // parameter LED_PATTERN = 64'b01111110_10000001_10100101_10000001_11000011_10111101_10000001_01111110; // Face
     // parameter LED_PATTERN = 64'b01010101_10101010_01010101_10101010_01010101_10101010_01010101_10101010; // Checkerboard
-    // parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000; // Toad
+    parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000; // Toad
     // parameter LED_PATTERN = 64'b01000000_00100000_11100000_00000000_00000000_00000000_00000000_00000000; // Glider
 
     parameter EMPTY_LED = 64'b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
@@ -38,19 +38,11 @@ module top(
     parameter LED_G = 24'b000000000000000011111111;
     parameter LED_B = 24'b111111110000000000000000;
 
-    logic [LED_BITS-1:0] mem [0:0];
-
-    initial begin
-        $readmemh("pattern.txt", mem);
-    end
+    logic [LED_BITS-1:0] mem [1:0];
 
     logic [LED_BITS-1:0] new_pattern = EMPTY_LED;
-    logic [LED_BITS-1:0] pattern;
-    logic [LED_BITS-1:0] pattern_bitstring;
-
-    assign pattern = mem[0];
-    assign pattern_bitstring = mem[0];
-    
+    logic [LED_BITS-1:0] pattern = LED_PATTERN;
+    logic [LED_BITS-1:0] pattern_bitstring = LED_PATTERN;
 
     logic [4:0] period_cntr = 0;
     logic [4:0] bit_cntr = 0;
