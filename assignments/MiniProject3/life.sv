@@ -28,15 +28,16 @@ module top(
 
     // parameter LED_PATTERN = 64'b01111110_10000001_10100101_10000001_11000011_10111101_10000001_01111110; // Face
     // parameter LED_PATTERN = 64'b01010101_10101010_01010101_10101010_01010101_10101010_01010101_10101010; // Checkerboard
-    parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000; // Toad
+    // parameter LED_PATTERN = 64'b00000000_00000000_00000000_00111000_00011100_00000000_00000000_00000000; // Toad
     // parameter LED_PATTERN = 64'b01000000_00100000_11100000_00000000_00000000_00000000_00000000_00000000; // Glider
+    parameter LED_PATTERN = 64'b00111000_00000000_00000001_00000001_00000001_01110000_00000000_00000000; // Glider
 
     parameter EMPTY_LED = 64'b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
     parameter LED_OFF = 24'b000000000000000000000000;
-    parameter LED_R = 24'b000000001111111100000000;
-    parameter LED_G = 24'b000000000000000011111111;
-    parameter LED_B = 24'b111111110000000000000000;
+    parameter LED_R = 24'b000000001111000000000000;
+    parameter LED_G = 24'b000000000000000011110000;
+    parameter LED_B = 24'b111100000000000000000000;
 
     logic [LED_BITS-1:0] mem [1:0];
 
@@ -137,39 +138,88 @@ module top(
     always_comb begin
         neighbors = 0;
 
-        if(bit_checked > 8 && pattern[bit_checked - 8] == 1) begin
-            neighbors = neighbors + 1;
+        if(bit_checked >= 8) begin
+            if(pattern[bit_checked - 8] == 1) begin
+                neighbors = neighbors + 1;
+            end
+        end else begin
+            if(pattern[LED_BITS - 8 + bit_checked] == 1) begin
+                neighbors = neighbors + 1;
+            end
         end
 
-        if(bit_checked < LED_BITS - 8 && pattern[bit_checked + 8] == 1) begin
-            neighbors = neighbors + 1;
+        if(bit_checked < LED_BITS - 8) begin
+            if(pattern[bit_checked + 8] == 1) begin
+                neighbors = neighbors + 1;
+            end
+        end else begin
+            if(pattern[bit_checked - LED_BITS - 8 - 1] == 1) begin
+                neighbors = neighbors + 1;
+            end
         end
 
         if(bit_checked != 0 && bit_checked != 8 && bit_checked != 16 && bit_checked != 24 && bit_checked != 32 && bit_checked != 40 && bit_checked != 48 && bit_checked != 56) begin
-            if(bit_checked < LED_BITS - 7 && pattern[bit_checked + 7] == 1) begin
-                neighbors = neighbors + 1;
+            if(bit_checked < LED_BITS - 7) begin
+                if(pattern[bit_checked + 7] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[bit_checked - LED_BITS - 7 - 1] == 1) begin
+                    neighbors = neighbors + 1;
+                end
             end
 
-            if(pattern[bit_checked - 1] == 1) begin
-                neighbors = neighbors + 1;
-            end  
+            if(bit_checked < LED_BITS - 1) begin
+                if(pattern[bit_checked + 1] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[bit_checked - LED_BITS - 1 - 1] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end    
 
-            if(bit_checked > 9 && pattern[bit_checked - 9] == 1) begin
-                neighbors = neighbors + 1;
+
+            if(bit_checked >= 9) begin
+                if(pattern[bit_checked - 9] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[LED_BITS - 9 + bit_checked] == 1) begin
+                    neighbors = neighbors + 1;
+                end
             end
         end
 
         if(bit_checked != 7 && bit_checked != 15 && bit_checked != 23 && bit_checked != 31 && bit_checked != 39 && bit_checked != 47 && bit_checked != 55 && bit_checked != 63) begin
-            if(bit_checked > 7 && pattern[bit_checked - 7] == 1) begin
-                neighbors = neighbors + 1;
+            if(bit_checked >= 7) begin
+                if(pattern[bit_checked - 7] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[LED_BITS - 7 + bit_checked] == 1) begin
+                    neighbors = neighbors + 1;
+                end
             end
 
-            if(pattern[bit_checked + 1] == 1) begin
-                neighbors = neighbors + 1;
-            end  
+            if(bit_checked >= 1) begin
+                if(pattern[bit_checked - 1] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[LED_BITS - 1 + bit_checked] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end 
 
-            if(bit_checked < LED_BITS - 9 && pattern[bit_checked + 9] == 1) begin
-                neighbors = neighbors + 1;
+            if(bit_checked < LED_BITS - 9) begin
+                if(pattern[bit_checked + 9] == 1) begin
+                    neighbors = neighbors + 1;
+                end
+            end else begin
+                if(pattern[bit_checked - LED_BITS - 9 - 1] == 1) begin
+                    neighbors = neighbors + 1;
+                end
             end
         end
 
