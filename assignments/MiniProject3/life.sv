@@ -34,9 +34,9 @@ module top(
     parameter EMPTY_LED = 64'b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
     parameter LED_OFF = 24'b000000000000000000000000;
-    parameter LED_R = 24'b00000000111111110000000;
-    parameter LED_G = 24'b00000000000000001111111;
-    parameter LED_B = 24'b11111111000000000000000;
+    parameter LED_R = 24'b000000001111111100000000;
+    parameter LED_G = 24'b000000000000000011111111;
+    parameter LED_B = 24'b111111110000000000000001;
 
     logic [LED_BITS-1:0] mem [0:0];
 
@@ -56,13 +56,13 @@ module top(
 
     logic [24:0] update_counter = 0;
 
-    logic [24:0] x = 0;
-    logic [24:0] y = 0;
-    logic [24:0] dx = 0;
-    logic [24:0] dy = 0;
-    logic [24:0] nx = 0;
-    logic [24:0] ny = 0;
-    logic [24:0] n_index = 0;
+    logic [5:0] x = 0;
+    logic [5:0] y = 0;
+    logic [5:0] dx = 0;
+    logic [5:0] dy = 0;
+    logic [5:0] nx = 0;
+    logic [5:0] ny = 0;
+    logic [5:0] n_index = 0;
 
     logic [LED_BITS-1:0] new_pattern = EMPTY_LED;
     logic [LED_BITS-1:0] pattern_bitstring = EMPTY_LED;
