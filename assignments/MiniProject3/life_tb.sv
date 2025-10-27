@@ -1,23 +1,24 @@
+`define SIMULATED
 `timescale 10ns/10ns
 `include "life.sv"
 
 module life_tb;
 
-
     logic clk = 0;
     logic _3b;
 
 
+
     top # (
     ) u0 (
-        .clk            (clk), 
+        .clk          (clk), 
         ._3b          (_3b)
     );
 
     initial begin
         $dumpfile("life.vcd");
         $dumpvars(0, life_tb);
-        #1500000
+        #2000000
         $finish;
     end
 
@@ -27,3 +28,5 @@ module life_tb;
     end
 
 endmodule
+
+

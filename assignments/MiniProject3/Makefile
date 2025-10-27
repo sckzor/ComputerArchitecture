@@ -10,7 +10,7 @@ prog: #for sram
 	dfu-util --device 1d50:6146 --alt 0 -D $(filename).bin -R
 
 sim:
-	iverilog -g2012 -o $(filename) $(filename)_tb.sv
+	iverilog -g2012 -o $(filename) $(filename)_tb.sv 
 	vvp $(filename)
 	gtkwave $(filename).vcd
 

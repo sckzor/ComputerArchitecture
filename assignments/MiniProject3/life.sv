@@ -1,4 +1,5 @@
 // Conway's Game of Life
+// Charlie Sands
 
 module top(
     input logic     clk, 
@@ -10,8 +11,11 @@ module top(
     parameter PERIOD_TICKS = 15;
     parameter BLANKING_TIME = 2000;
 
+`ifdef SIMULATED
+    parameter UPDATE_TIME = 10000;
+`else
     parameter UPDATE_TIME = 1200000;
-    // parameter UPDATE_TIME = 10;
+`endif
 
     parameter TX_BITS = 24;
     parameter LED_BITS = 64;
@@ -39,7 +43,6 @@ module top(
     parameter LED_B = 24'b111111110000000000000001;
 
     logic [LED_BITS-1:0] mem [0:0];
-
     
     logic [4:0] period_cntr = 0;
     logic [4:0] bit_cntr = 0;
@@ -58,8 +61,8 @@ module top(
 
     logic [5:0] x = 0;
     logic [5:0] y = 0;
-    logic [5:0] dx = 0;
-    logic [5:0] dy = 0;
+    logic signed [5:0] dx = 0;
+    logic signed [5:0] dy = 0;
     logic [5:0] nx = 0;
     logic [5:0] ny = 0;
     logic [5:0] n_index = 0;
@@ -72,6 +75,13 @@ module top(
 
     logic [0:0] pattern_read = FALSE;
 
+// These lines are for exporting the state of the game during simulation
+`ifdef SIMULATED
+    parameter NUM_SAVED_STATES = 20;
+    logic [12:0] state_cnt = 0;
+    logic [LED_BITS-1:0] mem_write [NUM_SAVED_STATES - 1:0];
+`endif
+
     initial begin
         _3b = 1'b1;
         $readmemb("pattern.txt",mem);
@@ -81,7 +91,6 @@ module top(
     // LED Controller Code
 
     always_ff @(posedge clk) begin
-
         if(period_cntr == PERIOD_TICKS) begin
             if(bit_cntr == TX_BITS - 1) begin
                 if(pattern_bitstring[0] == 1) begin
@@ -93,7 +102,6 @@ module top(
         end
 
         if(blanking_counter == 0) begin
-
             case(color_bitstring[0])
                 FALSE: begin
                     if(period_cntr == OFF_TICKS) begin
@@ -149,11 +157,27 @@ module top(
                 color_bitstring <= LED_OFF;
             end
 
-            pattern_bitstring <= pattern >> 1;
+            pattern_bitstring <= pattern >> 1;  
+
+// These lines are for exporting the state of the game during simulation
+`ifdef SIMULATED
+            if(top.state_cnt < NUM_SAVED_STATES) begin
+               mem_write[top.state_cnt] <= top.pattern;
+               top.state_cnt <= top.state_cnt + 1;
+            end   
+`endif
+
         end else begin
             blanking_counter <= blanking_counter - 1;
         end
     end
+
+// These lines are for exporting the state of the game during simulation
+`ifdef SIMULATED
+    always_comb begin
+        $writememb("memory_pattern.txt", mem_write);
+    end
+`endif
 
     // Game of Life Logic
 
