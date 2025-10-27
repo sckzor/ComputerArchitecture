@@ -3,11 +3,8 @@
 `include "life.sv"
 
 module life_tb;
-
     logic clk = 0;
     logic _3b;
-
-
 
     top # (
     ) u0 (
