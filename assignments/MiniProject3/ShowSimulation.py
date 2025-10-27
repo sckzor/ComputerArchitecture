@@ -3,7 +3,6 @@ import numpy as np
 
 fig, axs = plt.subplots(ncols=4, nrows=2, layout="constrained")
 
-np.random.seed(19680801)  # Fixing random state for reproducibility
 file = open("memory_pattern.txt", "r")
 text = file.read()
 
