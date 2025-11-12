@@ -17,7 +17,7 @@ logic [31:0] pc = 32'h00001000;
 
 logic [31:0] new_regs [31:0];
 logic [31:0] new_pc = 32'h00001000;
-logic new_dmem_wren = 0;
+logic        new_dmem_wren = 0;
 logic [31:0] new_dmem_address = 32'h0;
 logic [31:0] new_dmem_data_out = 32'h0;
 logic [31:0] new_imem_address = 32'h0;
@@ -66,12 +66,8 @@ always_ff @(posedge clk) begin
         pc <= 32'h00001000;
         state <= RESET;
         for(int i = 0; i < 32; i++) regs[i] <= 32'h0;
-    end else begin
-
     end
-end
 
-always_ff @(posedge clk) begin
     dmem_wren <= new_dmem_wren;
     dmem_address <= new_dmem_address;
     dmem_data_out <= new_dmem_data_out;
@@ -138,18 +134,18 @@ always_comb begin
                 endcase
             end
 
-            7'b0000011: begin // LOAD
+            7'b0000011: begin // LB, LH, LW, LBU, LHU
                 new_dmem_address = regs[rs1] + imm_i;
             end
 
-            7'b0100011: begin // STORE
+            7'b0100011: begin // SB, SH, SW
                 new_dmem_wren = 1'b1;
                 new_dmem_address = regs[rs1] + imm_s;
                 new_dmem_data_out = regs[rs2];
             end
 
 
-            7'b0010011: begin // I-type ALU
+            7'b0010011: begin // ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRAI
                 case(f3)
                     3'b000: new_regs[rd] = regs[rs1] + $signed(imm_i); // ADDI
                     3'b010: new_regs[rd] = $signed(regs[rs1]) < $signed(imm_i); // SLTI
@@ -165,7 +161,7 @@ always_comb begin
                 endcase
             end
 
-            7'b0110011: begin // R-type ALU
+            7'b0110011: begin // ADD, SUM, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND
                 case(f3)
                     3'b000: case(f7)
                         7'b0000000: new_regs[rd] = regs[rs1] + regs[rs2]; // ADD
@@ -188,11 +184,11 @@ always_comb begin
 
     if(state == MEMORY) begin
         case(opcode)
-            7'b0000011: begin // LOAD
+            7'b0000011: begin // LB, LH, LW, LBU, LHU
                 new_regs[rd] = dmem_data_in;
             end
 
-            7'b0100011: begin // STORE
+            7'b0100011: begin // SB, SH, SW
                 new_dmem_wren = 1'b0;
             end
         endcase
