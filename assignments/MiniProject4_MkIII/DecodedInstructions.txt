@@ -41,7 +41,7 @@ fff0c093 // xori x1, x1, -1
 ff5ff06f // jal x0, -12
 
 
-ff0001b7 ; lui x3, -4096 ; zero the x3 register
+ff0001b7 ; lui x3, -4096 ; add a value to the x3 register
 40000213 ; addi x4, x0, 1024 ; load 1024 to the x4 register
 fe302e23 ; sw x3, -4(x0) ; store x3 in the LED register
 ff402083 ; lw x1, -8(x0) ; get time in ms 0xff802083 <-- hw

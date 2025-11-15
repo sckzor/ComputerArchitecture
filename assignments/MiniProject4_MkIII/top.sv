@@ -38,7 +38,7 @@ module top (
  
 
     memory #(
-        .IMEM_INIT_FILE_PREFIX  ("rv32i_blink")
+        .IMEM_INIT_FILE_PREFIX  ("rv32i_test")
     ) u2 (
         .clk            (clk), 
         .funct3         (funct3), 

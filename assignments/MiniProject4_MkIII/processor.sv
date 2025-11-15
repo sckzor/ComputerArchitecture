@@ -62,7 +62,9 @@ parameter DECODE = 2;
 // Stall for an FPGA clock because the timer seems to take an extra cycle to read?
 parameter MEMORY = 5;
 
-logic [2:0] state = FETCH;//= RESET;
+// Lengthening this to 32 bits in shortens the critical path by some dark magic
+// I am not one to look a gift horse in the mouth...
+logic [31:0] state = FETCH;
 
 logic [31:0] add_1;
 logic [31:0] add_2;
@@ -71,6 +73,7 @@ assign sum = add_1 + add_2;
 
 logic [31:0] s_1;
 logic [31:0] s_2;
+
 logic [31:0] shift_l;
 assign shift_l = s_1 << s_2;
 
@@ -78,7 +81,7 @@ logic [31:0] shift_r;
 assign shift_r = s_1 >> s_2;
 
 logic [31:0] shift_ra;
-assign shift_ra = s_1 >>> s_2;
+assign shift_ra = $signed(s_1) >>> s_2;
 
 
 initial begin
@@ -87,14 +90,6 @@ end
 
 
 always_ff @(posedge clk) begin
-/*
-    if (reset) begin
-        pc <= 32'h00001000;
-        state <= RESET;
-
-        for(int i = 0; i < 32; i++) regs[i] <= 32'h0;
-    end
-*/
     dmem_wren <= new_dmem_wren;
     dmem_address <= new_dmem_address;
     dmem_data_out <= new_dmem_data_out;
@@ -119,6 +114,14 @@ always_ff @(posedge clk) begin
 end
 
 always_comb begin
+    new_instruction = instruction;
+
+    if(state == FETCH) begin
+        new_instruction = imem_data_in;
+    end
+end
+
+always_comb begin
     new_reg_data = 0;
     new_reg_addr = 0;
 
@@ -132,16 +135,7 @@ always_comb begin
     new_dmem_wren = 0;
     new_dmem_address = dmem_address;
     new_dmem_data_out = dmem_data_out;
-    new_instruction = instruction;
 
-
-    if(state == FETCH) begin
-        new_instruction = imem_data_in;
-
-        //add_1 = pc;
-        //add_2 = 4;
-        //new_pc = sum;
-    end
 
     if(state == DECODE) begin
         case(opcode)
@@ -159,9 +153,11 @@ always_comb begin
 
             7'b1101111: begin // JAL
                 new_reg_addr = rd;
+
                 add_1 = pc;
                 add_2 = 4;
                 new_reg_data = sum;
+
                 add_2 = imm_j;
                 new_pc = sum;
             end
@@ -171,6 +167,7 @@ always_comb begin
 
                 add_1 = pc;
                 add_2 = 4;
+
                 new_reg_data = sum;
 
                 add_1 = regs[rs1];
@@ -216,7 +213,7 @@ always_comb begin
                         add_2 = $signed(imm_i);
                         new_reg_data = sum;
                     end
-/*
+
                     3'b010: begin // SLTI
                         new_reg_data = $signed(regs[rs1]) < $signed(imm_i);
                     end
@@ -244,27 +241,28 @@ always_comb begin
                     end
 
                     3'b101: begin
-                        s_2 = rs2;
 
                         case(f7)
                             7'b0000000: begin // SRLI
                                 s_1 = regs[rs1];
+                                s_2 = rs2;
                                 new_reg_data = shift_r;
                             end
+
                             7'b0100000: begin // SRAI
-                                s_1 = $signed(regs[rs1]);
+                                s_1 = regs[rs1];
+                                s_2 = rs2;
                                 new_reg_data = shift_ra;
                             end
                         endcase
                     end
-*/
+
                 endcase
             end
 
             7'b0110011: begin // ADD, SUM, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND
                 new_reg_addr = rd;
                 case(f3)
-/*
                     3'b000: begin
                         add_1 = regs[rs1];
 
@@ -300,15 +298,18 @@ always_comb begin
                     end
 
                     3'b101: begin
-                        s_2 = regs[rs2];
+
+
                         case(f7)
                             7'b0000000: begin // SRL
                                 s_1 = regs[rs1];
+                                s_2 = regs[rs2];
                                 new_reg_data = shift_r;
                             end
 
                             7'b0100000: begin // SRA
-                                s_1 = $signed(regs[rs1]);
+                                s_1 = regs[rs1];
+                                s_2 = rs2;
                                 new_reg_data = shift_ra;
                             end
                         endcase
@@ -317,7 +318,6 @@ always_comb begin
                     3'b110: begin // OR
                         new_reg_data = regs[rs1] | regs[rs2];
                     end
-*/
 
                     3'b111: begin // AND
                         new_reg_data = regs[rs1] & regs[rs2];
