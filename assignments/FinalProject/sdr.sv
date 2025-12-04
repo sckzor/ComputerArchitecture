@@ -1,108 +1,5 @@
 // Software Defined Radio
 
-// Code for generating a chirp
-
-/*
-    always_ff @(posedge clk) begin
-        if(step_hold_cycle == STEP_HOLD_CYCLE) begin
-            step_hold_cycle <= 0;
-            step_hold_time <= step_hold_time + 1;
-        end
-
-        if(step_hold == step_hold_time) begin 
-            voltage <= sine_lut[sine_pos];
-
-            sine_pos <= sine_pos + 1;
-
-            if(sine_pos == STEPS-1) begin
-                sine_pos <= 0;
-            end
-            else begin
-                sine_pos <= sine_pos + 1;
-            end
-
-            step_hold <= 0;
-            step_hold_cycle <= step_hold_cycle + 1;
-        end
-        else begin
-            step_hold <= step_hold + 1;
-        end
-    end
-*/
-
-// Adapted from https://github.com/SantiStormblessed/Division_Pipeline_Verilog/
-
-module div_no_pipeline 
-(
-    input logic clk, 
-    input logic [0:0] start,
-    input logic [31:0] dividend,
-    input logic [31:0] divider,
-
-    output logic [31:0] quotient,
-    output logic [31:0] remainder,
-    output logic [0:0] ready
-);
-
-    parameter WIDTH = 32;     // Bit width for inputs/outputs
-    parameter sign = 0;      // If 1, enables signed division
-
-    logic [0:0] in_process;          // Division in progress flag
-
-    logic [WIDTH-1:0] quotient_temp;  // Accumulator for quotient result
-    logic [WIDTH*2-1:0] dividend_copy, divider_copy, diff; // Intermediate registers
-    logic [0:0] negative_output;     // Indicates if result should be negative
-
-    logic [7:0] bonk = 0;
-    logic [0:0] del_ready = 1;       // Delayed ready signal for synchronization
-    logic [WIDTH-2:0] zeros = 0;       // Zero padding
-
-    assign ready = (!bonk) & ~del_ready; // Indicates division completion
-
-
-    initial begin 
-        bonk = 0;
-        negative_output = 0;
-        in_process = 0;
-    end
-
-    // Main control logic
-    always @( posedge clk ) begin
-        del_ready <= !bonk;  // Update delayed ready signal
-        if (start && !in_process) begin
-            // Initialize division
-            in_process = 1;
-            bonk = WIDTH;
-            quotient = 0;
-            remainder = 0;
-            quotient_temp = 0;
-
-            // Sign handling and operand preparation
-            dividend_copy = (!sign || !dividend[WIDTH-1]) ? {1'b0, zeros, dividend} : {1'b0, zeros, ~dividend + 1'b1};
-            divider_copy  = (!sign || !divider[WIDTH-1])  ? {1'b0, divider, zeros}  : {1'b0, ~divider + 1'b1, zeros};
-            negative_output = sign && ((divider[WIDTH-1] && !dividend[WIDTH-1]) || (!divider[WIDTH-1] && dividend[WIDTH-1]));
-        end
-        else if (bonk > 0) begin
-            // One iteration of restoring division
-            diff = dividend_copy - divider_copy;
-            quotient_temp = quotient_temp << 1;
-            if (!diff[WIDTH*2-1]) begin
-                dividend_copy = diff;
-                quotient_temp[0] = 1'b1;
-            end
-            divider_copy = divider_copy >> 1;
-            bonk = bonk - 1;
-            if (bonk == 0) in_process = 0;
-        end
-    end
-
-    // Final output assignment after division completes
-    always @(posedge ready) begin
-        quotient  = (!negative_output) ? quotient_temp : ~quotient_temp + 1'b1;
-        remainder = (!negative_output) ? dividend_copy[WIDTH-1:0] : ~dividend_copy[WIDTH-1:0] + 1'b1;
-    end
-endmodule
-
 module midi_player #(
     parameter INIT_FILE = ""
 )(
@@ -123,25 +20,7 @@ module midi_player #(
     logic [31:0] delay = 0;
     logic [31:0] delay_counter = 0;
 
-    logic [0:0] start_div = 0;
-    logic [0:0] ready_div;
-
-    logic [31:0] dividend = 0;
-    logic [31:0] divider = 0;
-    logic [31:0] quotient;
-    logic [31:0] remainder;
-
     int i;
-
-    div_no_pipeline div_1 (
-        .clk            (clk), 
-        .start          (start_div), 
-        .dividend       (dividend),
-        .divider        (divider),
-        .quotient       (quotient),
-        .remainder      (remainder),
-        .ready          (ready_div)
-    );
 
     // Initialize memory array
     initial begin
@@ -158,27 +37,12 @@ module midi_player #(
     end
 
     always_ff @(posedge clk) begin
-        // delay = MAX_SPEED / (midi_freqs[point_num]);
-/*
-        if(midi_freqs[point_num] != 0) begin
-            if(!start_div) begin
-                start_div <= 1;
-            end
-
-            dividend <= MAX_SPEED;
-            divider <= midi_freqs[point_num];
-        
-            if(ready_div & quotient != 0) begin 
-                delay <= quotient;
-                start_div <= 0;
-            end
+        if(midi_freqs[point_num] > 0) begin
+            delay <= midi_freqs[point_num] + 30;
         end
         else begin
-            delay <= 32'hFFFFFFFF;
+            delay <= 0;
         end
-*/
-
-        delay <= midi_freqs[point_num];
     end
 
     always_comb begin
@@ -188,11 +52,13 @@ module midi_player #(
     always_ff @(posedge clk) begin
         if(delay_counter >= delay) begin
             delay_counter <= 0;
-            if(sine_pos == SINE_STEPS - 1) begin
-                sine_pos <= 0;
-            end
-            else begin
-                sine_pos <= sine_pos + 1;
+            if(delay != 0) begin
+                if(sine_pos == SINE_STEPS - 1) begin
+                    sine_pos <= 0;
+                end
+                else begin
+                    sine_pos <= sine_pos + 1;
+                end
             end
         end
         else begin
@@ -231,9 +97,9 @@ module top(
 
 
     // DAC Control
-    parameter AUDIO_LEN = 71;
+    parameter AUDIO_LEN = 1024;
 
-    parameter STEP_HOLD_TIME = 1200000;
+    parameter STEP_HOLD_TIME = 500000;
 
     logic [31:0] count = 0;
     logic [31:0] update_count = 0;
@@ -243,6 +109,9 @@ module top(
     logic [31:0] step_hold_cycle = 0;
 
     logic [31:0] music_pos = 0;
+
+    logic [7:0] component1; 
+    logic [7:0] component2; 
 
 
     initial begin
@@ -261,11 +130,19 @@ module top(
     end
 
     midi_player #(
-        .INIT_FILE      ("miditest.txt")
+        .INIT_FILE      ("mcmidi.txt")
     ) voice1 (
         .clk            (clk), 
         .point_num      (music_pos), 
-        .point_out      (voltage)
+        .point_out      (component1)
+    );
+
+    midi_player #(
+        .INIT_FILE      ("miditest2.txt")
+    ) voice2 (
+        .clk            (clk), 
+        .point_num      (music_pos), 
+        .point_out      (component2)
     );
 
     always_ff @(posedge clk) begin
@@ -287,6 +164,8 @@ module top(
     end
 
     always_comb begin
+        voltage = (component1) ;
+
         _20a = voltage[7];
         _18a = voltage[6];
         _13b = voltage[5];
