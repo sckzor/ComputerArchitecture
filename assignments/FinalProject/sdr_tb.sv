@@ -15,6 +15,8 @@ module sdr_tb;
     logic    _3b;
     logic    _45a;
     logic    _48b;
+    logic    _0a;
+    logic    _5a;
 
     top # (
     ) u0 (
@@ -29,13 +31,15 @@ module sdr_tb;
         ._2a          (_2a),
         ._3b          (_3b),
         ._45a         (_45a),
-        ._48b         (_48b)
+        ._48b         (_48b),
+        ._0a          (_0a),
+        ._5a          (_5a)
     );
 
     initial begin
         $dumpfile("sdr.vcd");
         $dumpvars(0, sdr_tb);
-        #2000000
+        #5000000
         $finish;
     end
 

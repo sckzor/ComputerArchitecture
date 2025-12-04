@@ -33,8 +33,11 @@
     lhu x21, -4(x0)         # pc = 0x7C, x21 = 0x0000C0C0
     lb x22, -4(x0)          # pc = 0x80, x22 = 0xFFFFFFC0
     lbu x23, -4(x0)         # pc = 0x84, x23 = 0x000000C0
-
-
+    addi x1, x0, 0          # Load 0x00000000 into x1
+    addi x2, x0, -1         # Load 0xFFFFFFFF into x2
+    xori x1, x1, -1         # Invert the bits in x1
+    sw x1, 0(x2)            # Store data into the last memory address
+    jal x0, -12             # Jump back three instructions
 
 
 
