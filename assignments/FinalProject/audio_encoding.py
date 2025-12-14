@@ -1,5 +1,7 @@
 import math
 
+# ChatGPT was used to write parts of this note parsing code.
+
 def parse_note_line(line):
     """
     Parse a line like 'C#4', 'Eb3', 'A4', or 'R'/'REST'.
@@ -86,10 +88,15 @@ def write_frequencies_to_file(frequencies, output_filename):
 
 # Example usage:
 if __name__ == "__main__":
-    input_file = "merrychristmas.txt"
-    output_file = "mcmidi.txt"
+    #input_file = "merrychristmas2.txt"
+    #output_file = "mcmidi2.txt"
 
-    freqs = load_notes_from_file(input_file)
-    write_frequencies_to_file(freqs, output_file)
+    #freqs = load_notes_from_file(input_file)
+    #write_frequencies_to_file(freqs, output_file)
 
-    print(f"Frequencies written to '{output_file}'")
+    #print(f"Frequencies written to '{output_file}'")
+    freq = note_to_frequency("D", 3)
+    delay = max((256-int(freq))+1, 10)
+    print(f"{freq} Hz")
+    print(f"{delay:x}")
+

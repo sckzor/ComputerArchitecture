@@ -130,7 +130,7 @@ module top(
     end
 
     midi_player #(
-        .INIT_FILE      ("mcmidi.txt")
+        .INIT_FILE      ("mcmidi1.txt")
     ) voice1 (
         .clk            (clk), 
         .point_num      (music_pos), 
@@ -138,7 +138,7 @@ module top(
     );
 
     midi_player #(
-        .INIT_FILE      ("miditest2.txt")
+        .INIT_FILE      ("mcmidi2.txt")
     ) voice2 (
         .clk            (clk), 
         .point_num      (music_pos), 
@@ -164,7 +164,7 @@ module top(
     end
 
     always_comb begin
-        voltage = (component1) ;
+        voltage = (component1 >> 1) + (component2 >> 1);
 
         _20a = voltage[7];
         _18a = voltage[6];
